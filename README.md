@@ -10,20 +10,22 @@ Rich text editing with formatting options (bold, italic, underline, etc.)
 Insert images
 Zoom in/out
 Spell checking
-Find and replace
-Save/open .docx and .txt files
-AI assistant provides smart suggestions and can:
-Analyze text
-Improve text
-Assess grammar
-Give ideas
-Extend text
-Shorten text
-Check spelling
-Autocomplete
-Search the web for references
-Configurable settings
-Light and dark theme
+Word count tracking
+Assistant panel powered by GPT-3.5 that provides:
+Text analysis
+Grammar assessment
+Idea generation
+Text extension/summarization
+Contextual autocomplete suggestions
+Internet research capabilities
+Support for .docx and .txt files
+Find/replace text
+Image insertion
+Zooming
+Print preview
+Customizable settings
+Light and dark themes
+Generated image view and saving
 Requirements
 
 Python 3.6 or higher
