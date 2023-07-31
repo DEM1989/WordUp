@@ -8,7 +8,7 @@ Features
 Rich text editing with formatting options like bold, italic, underline, etc.
 Spell checking
 Word count tracking
-Assistant panel powered by GPT-3.5 that provides:
+Assistant panel powered by GPT-3.5 and GPT4 that provides:
 Text analysis
 Grammar assessment
 Idea generation
