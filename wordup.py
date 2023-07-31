@@ -300,14 +300,13 @@ class ChatbotAssistantWidget(QWidget):
             return None, error_message
 
 
-    def _handle_duckduckgo_response(self, response):
-        soup = BeautifulSoup(response.text, "html.parser")  # <-- Note the use of `.text` here.
-        results = soup.select(".result__url")[:3]
+    def _handle_google_response(self, response):
+        results = response.json()["items"][:1]
         items = []
         for result in results:
-            title = result.text
-            url = result.get("href")
-            items.append({"title": title, "url": url})  # Append a dictionary instead of a string
+            title = result["title"]
+            url = result["link"]
+            items.append({"title": title, "url": url})
         return items
 
 
@@ -333,15 +332,23 @@ class ChatbotAssistantWidget(QWidget):
                 },
                 "response_handler": self._handle_wikipedia_response
             },
-            {
-                "endpoint": "https://duckduckgo.com/html/",
-                "params": {
-                    "q": query,
-                },
-                "response_handler": self._handle_duckduckgo_response
-            }
         ]
 
+        GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"
+        SEARCH_ENGINE_ID = "YOUR_SEARCH_ENGINE_ID"
+
+        # If Google API key and search engine ID are available, add Google source
+        if GOOGLE_API_KEY and SEARCH_ENGINE_ID:
+            sources.append({
+                "endpoint": "https://www.googleapis.com/customsearch/v1",
+                "params": {
+                    "key": GOOGLE_API_KEY,
+                    "cx": SEARCH_ENGINE_ID,
+                    "q": query,
+                },
+                "response_handler": self._handle_google_response  # You need to implement this
+            })
+        
         items = []
         with ThreadPoolExecutor() as executor:
             for source in sources:
