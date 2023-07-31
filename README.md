@@ -1,4 +1,4 @@
-# PyWord
+# WordUp
 Open source Word Editor with AI Co-pilot
 
 
@@ -37,7 +37,7 @@ Usage
 Clone the repository
 Install dependencies with pip install -r requirements.txt
 Sign up for an OpenAI API key at https://openai.com/api/ and add it to the code
-Run python wordeditor.py to start the application
+Run python main.py to start the application
 The assistant panel provides advanced writing aids - simply select some text and use the context menu to access relevant features. The internet search capability leverages Wikipedia, DuckDuckGo and OpenAI's summary abilities to provide informed responses.
 
 Please refer to the source code for additional details on implementation.
