@@ -53,7 +53,7 @@ WordUp is an open-source, PyQt5-based word processor application with AI assista
   "api_key": "YOUR_API_KEY"
 }
 ```
-Note this first step can be skipped as when the main.py is first loaeded it will ask you for an API key
+Note this first step can be skipped as when the main.py is loaded for the first time it will ask you for an API key
 
 2. Install the required dependencies by running the following command:
 ```bash
