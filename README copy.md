@@ -1,2 +1,0 @@
-# wordeditor
-Advanced word editor

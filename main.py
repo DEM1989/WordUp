@@ -1,12 +1,13 @@
 import docx
 from PyQt5.QtCore import QFile, QIODevice, Qt, QTextStream
-from PyQt5.QtGui import QFont, QIcon, QTextCursor
+from PyQt5.QtGui import QFont, QIcon, QTextCursor, QColor
 from PyQt5.QtWidgets import (QAction, QDockWidget, QFileDialog, QFontDialog,
                              QLabel, QMainWindow, QMenu, QPlainTextEdit,
                              QPushButton, QStatusBar, QTextBrowser, QToolBar,
                              QVBoxLayout, QWidget, QHBoxLayout)
 import sys
 import openai
+from PyQt5 import QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTextEdit, QAction, QFileDialog, QFontDialog, QStatusBar, QMenu, QCheckBox, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QPlainTextEdit, QTextBrowser
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QStyleFactory
@@ -300,13 +301,14 @@ class ChatbotAssistantWidget(QWidget):
             return None, error_message
 
 
-    def _handle_google_response(self, response):
-        results = response.json()["items"][:1]
+    def _handle_duckduckgo_response(self, response):
+        soup = BeautifulSoup(response.text, "html.parser")  # <-- Note the use of `.text` here.
+        results = soup.select(".result__url")[:3]
         items = []
         for result in results:
-            title = result["title"]
-            url = result["link"]
-            items.append({"title": title, "url": url})
+            title = result.text
+            url = result.get("href")
+            items.append({"title": title, "url": url})  # Append a dictionary instead of a string
         return items
 
 
@@ -332,23 +334,15 @@ class ChatbotAssistantWidget(QWidget):
                 },
                 "response_handler": self._handle_wikipedia_response
             },
-        ]
-
-        GOOGLE_API_KEY = "YOUR_GOOGLE_API_KEY"
-        SEARCH_ENGINE_ID = "YOUR_SEARCH_ENGINE_ID"
-
-        # If Google API key and search engine ID are available, add Google source
-        if GOOGLE_API_KEY and SEARCH_ENGINE_ID:
-            sources.append({
-                "endpoint": "https://www.googleapis.com/customsearch/v1",
+            {
+                "endpoint": "https://duckduckgo.com/html/",
                 "params": {
-                    "key": GOOGLE_API_KEY,
-                    "cx": SEARCH_ENGINE_ID,
                     "q": query,
                 },
-                "response_handler": self._handle_google_response  # You need to implement this
-            })
-        
+                "response_handler": self._handle_duckduckgo_response
+            }
+        ]
+
         items = []
         with ThreadPoolExecutor() as executor:
             for source in sources:
@@ -572,8 +566,6 @@ class WordEditor(QMainWindow):
         # Create the status bar
         self.init_statusbar()
 
-        self.create_menu_bar()
-
         # Set a modern and appealing stylesheet
         self.set_app_stylesheet()
 
@@ -581,171 +573,200 @@ class WordEditor(QMainWindow):
         toolbar = self.addToolBar("Toolbar")
         toolbar.setMovable(False)
 
-        # Create new document action
+    
         new_action = QAction(QIcon.fromTheme("document-new"), "New", self)
         new_action.setShortcut("Ctrl+N")
         new_action.setToolTip("Create a new document")
         new_action.triggered.connect(self.new_file)
-        toolbar.addAction(new_action)
 
         # Create open document action
         open_action = QAction(QIcon.fromTheme("document-open"), "Open", self)
         open_action.setShortcut("Ctrl+O")
         open_action.setToolTip("Open an existing document")
         open_action.triggered.connect(self.open_file)
-        toolbar.addAction(open_action)
 
         # Create save document action
         save_action = QAction(QIcon.fromTheme("document-save"), "Save", self)
         save_action.setShortcut("Ctrl+S")
         save_action.setToolTip("Save the current document")
         save_action.triggered.connect(self.save_document)
-        toolbar.addAction(save_action)
-        
 
         # Create save document as action
         save_as_action = QAction(QIcon.fromTheme("document-save-as"), "Save As", self)
         save_as_action.setShortcut("Ctrl+Shift+S")
         save_as_action.setToolTip("Save the current document with a new name")
         save_as_action.triggered.connect(self.save_document_as)
-        toolbar.addAction(save_as_action)
-
-        toolbar.addSeparator()
-
-        # Create undo action
-        undo_action = QAction(QIcon.fromTheme("edit-undo"), "Undo", self)
-        undo_action.setShortcut("Ctrl+Z")
-        undo_action.setToolTip("Undo the last action")
-        undo_action.triggered.connect(self.text_editor.undo)
-        toolbar.addAction(undo_action)
-
-        # Create redo action
-        redo_action = QAction(QIcon.fromTheme("edit-redo"), "Redo", self)
-        redo_action.setShortcut("Ctrl+Shift+Z")
-        redo_action.setToolTip("Redo the last undone action")
-        redo_action.triggered.connect(self.text_editor.redo)
-        toolbar.addAction(redo_action)
-
-        toolbar.addSeparator()
-
-        # Create font selection action
-        font_action = QAction(QIcon.fromTheme("preferences-desktop-font"), "Font", self)
-        font_action.setShortcut("Ctrl+T")
-        font_action.setToolTip("Select the font for the text")
+        
+        
+        # Create exit action
+        exit_action = QAction(QIcon.fromTheme("application-exit"), "Exit", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.setToolTip("Exit the application")  
+        exit_action.triggered.connect(self.close)
+        
+        #Create setting action
+        setting_action = QAction(QIcon.fromTheme("application-settting"), "Settings", self)
+        setting_action.setShortcut("Ctrl+Shift+Q")
+        setting_action.setToolTip("Settings")
+        setting_action.triggered.connect(self.open_settings_dialog)
+        
+        #Add find and replace action
+        find_action = QAction(QIcon.fromTheme("application-find"), "Find", self)
+        find_action.setShortcut("Ctrl+F")
+        find_action.setToolTip("Find")
+        find_action.triggered.connect(self.open_find_replace_dialog)
+        
+        #font
+        font_action = QAction(QIcon.fromTheme("application-font"), "Font", self)
+        font_action.setShortcut("Ctrl+Shift+F")
+        font_action.setToolTip("Font")
         font_action.triggered.connect(self.select_font)
-        toolbar.addAction(font_action)
         
-        # Create font size selection action
-        font_size_action = QAction(QIcon.fromTheme("format-font-size"), "Font Size", self)
-        font_size_action.setToolTip("Select the font size for the text")
-        font_size_action.triggered.connect(self.select_font_size)
-        toolbar.addAction(font_size_action)
+        #Add APi action
+        api_action = QAction(QIcon.fromTheme("application-appi"), "API", self)
+        api_action.setShortcut("Ctrl+Shift+F")
+        api_action.setToolTip("API")
+        api_action.triggered.connect(self.open_api_dialog)
+        
+        # File Operations Group
+        file_menu = QMenu("File", self)
+        toolbar.addAction(file_menu.menuAction())
+        file_menu.addAction(new_action)
+        file_menu.addAction(open_action)
+        file_menu.addAction(save_action)
+        file_menu.addAction(save_as_action)
+        file_menu.addAction(exit_action)
+        file_menu.addAction(setting_action)
+        file_menu.addAction(find_action)
+        file_menu.addAction(font_action)
+        file_menu.addAction(api_action)
 
-        # Create insert image action
-        insert_image_action = QAction(QIcon.fromTheme("insert-image"), "Insert Image", self)
-        insert_image_action.setShortcut("Ctrl+I")
-        insert_image_action.setToolTip("Insert an image from your local drive")
-        insert_image_action.triggered.connect(self.insert_image)
-        toolbar.addAction(insert_image_action)
-        
+
         toolbar.addSeparator()
 
-        # Create paragraph alignment actions
-        align_left_action = QAction(QIcon.fromTheme("format-justify-left"), "Align Left", self)
-        align_left_action.setToolTip("Align text to the left")
-        align_left_action.triggered.connect(lambda: self.set_paragraph_alignment(Qt.AlignLeft))
-        toolbar.addAction(align_left_action)
+        # Text Formatting Group
+        format_menu = QMenu("Format", self)
+        toolbar.addAction(format_menu.menuAction())
 
-        align_center_action = QAction(QIcon.fromTheme("format-justify-center"), "Align Center", self)
-        align_center_action.setToolTip("Center text")
-        align_center_action.triggered.connect(lambda: self.set_paragraph_alignment(Qt.AlignCenter))
-        toolbar.addAction(align_center_action)
-
-        align_right_action = QAction(QIcon.fromTheme("format-justify-right"), "Align Right", self)
-        align_right_action.setToolTip("Align text to the right")
-        align_right_action.triggered.connect(lambda: self.set_paragraph_alignment(Qt.AlignRight))
-        toolbar.addAction(align_right_action)
-        
-        # Create bold text action
-        bold_action = QAction(QIcon.fromTheme("format-text-bold"), "Bold", self)
+        bold_action = QAction(QIcon.fromTheme("format-text-bold", QIcon("path/to/default/icon")), "Bold", self)
         bold_action.setShortcut("Ctrl+B")
         bold_action.setCheckable(True)
-        bold_action.setToolTip("Toggle bold text")
         bold_action.triggered.connect(self.toggle_bold_text)
-        toolbar.addAction(bold_action)
+        format_menu.addAction(bold_action)
 
-        # Create italics text action
         italic_action = QAction(QIcon.fromTheme("format-text-italic"), "Italic", self)
         italic_action.setShortcut("Ctrl+I")
         italic_action.setCheckable(True)
-        italic_action.setToolTip("Toggle italic text")
         italic_action.triggered.connect(self.toggle_italic_text)
-        toolbar.addAction(italic_action)
-        
-        # Create underline text action
+        format_menu.addAction(italic_action)
+
         underline_action = QAction(QIcon.fromTheme("format-text-underline"), "Underline", self)
         underline_action.setShortcut("Ctrl+U")
         underline_action.setCheckable(True)
-        underline_action.setToolTip("Toggle underline text")
         underline_action.triggered.connect(self.toggle_underline_text)
-        toolbar.addAction(underline_action)
+        format_menu.addAction(underline_action)
 
-        # Create strike through text action
         strike_action = QAction(QIcon.fromTheme("format-text-strikethrough"), "Strike Through", self)
         strike_action.setCheckable(True)
         strike_action.setToolTip("Toggle strike through text")
         strike_action.triggered.connect(self.toggle_strike_text)
-        toolbar.addAction(strike_action)
+        format_menu.addAction(strike_action)
 
+        
         toolbar.addSeparator()
 
-        # Create increase text size action
+        # Text Size & Alignment Group
+        text_size_menu = QMenu("Text Size", self)
+        toolbar.addAction(text_size_menu.menuAction())
+
+        font_action = QAction(QIcon.fromTheme("preferences-desktop-font"), "Font", self)
+        font_action.setShortcut("Ctrl+T")
+        font_action.setToolTip("Select the font for the text")
+        font_action.triggered.connect(self.select_font)
+        text_size_menu.addAction(font_action)
+
+        font_size_action = QAction(QIcon.fromTheme("format-font-size"), "Font Size", self)
+        font_size_action.setToolTip("Select the font size for the text")
+        font_size_action.triggered.connect(self.select_font_size)
+        text_size_menu.addAction(font_size_action)
+
         increase_size_action = QAction(QIcon.fromTheme("format-font-size-more"), "Increase Text Size", self)
         increase_size_action.setShortcut("Ctrl++")
         increase_size_action.setToolTip("Increase text size")
         increase_size_action.triggered.connect(self.increase_text_size)
-        toolbar.addAction(increase_size_action)
+        text_size_menu.addAction(increase_size_action)
 
-        # Create decrease text size action
         decrease_size_action = QAction(QIcon.fromTheme("format-font-size-less"), "Decrease Text Size", self)
         decrease_size_action.setShortcut("Ctrl+-")
         decrease_size_action.setToolTip("Decrease text size")
         decrease_size_action.triggered.connect(self.decrease_text_size)
-        toolbar.addAction(decrease_size_action)
+        text_size_menu.addAction(decrease_size_action)
+
+        alignment_menu = QMenu("Alignment", self)
+        toolbar.addAction(alignment_menu.menuAction())
+
+        align_left_action = QAction(QIcon.fromTheme("format-justify-left"), "Align Left", self)
+        align_left_action.setToolTip("Align text to the left")
+        align_left_action.triggered.connect(lambda: self.set_paragraph_alignment(Qt.AlignLeft))
+        alignment_menu.addAction(align_left_action)
+
+        align_center_action = QAction(QIcon.fromTheme("format-justify-center"), "Align Center", self)
+        align_center_action.setToolTip("Center text")
+        align_center_action.triggered.connect(lambda: self.set_paragraph_alignment(Qt.AlignCenter))
+        alignment_menu.addAction(align_center_action)
+
+        align_right_action = QAction(QIcon.fromTheme("format-justify-right"), "Align Right", self)
+        align_right_action.setToolTip("Align text to the right")
+        align_right_action.triggered.connect(lambda: self.set_paragraph_alignment(Qt.AlignRight))
+        alignment_menu.addAction(align_right_action)
 
         toolbar.addSeparator()
 
-        # Create generate image action
+        # Insert & Generate Images Group
+        image_menu = QMenu("Images", self)
+        toolbar.addAction(image_menu.menuAction())
+
+        insert_image_action = QAction(QIcon.fromTheme("insert-image"), "Insert Image", self)
+        insert_image_action.setShortcut("Ctrl+I")
+        insert_image_action.setToolTip("Insert an image from your local drive")
+        insert_image_action.triggered.connect(self.insert_image)
+        image_menu.addAction(insert_image_action)
+
         generate_image_action = QAction(QIcon.fromTheme("image-x-generic"), "Generate Image", self)
         generate_image_action.setShortcut("Ctrl+G")
         generate_image_action.setToolTip("Generate an image from a description")
         generate_image_action.triggered.connect(self.generate_image_dialog)
-        toolbar.addAction(generate_image_action)
+        image_menu.addAction(generate_image_action)
 
         toolbar.addSeparator()
 
-        # Create spell check action
+        # Spell Check
         spell_check_action = QAction(QIcon.fromTheme("tools-check-spelling"), "Spell Check", self)
         spell_check_action.setShortcut("F7")
         spell_check_action.setToolTip("Check the spelling of the text")
         spell_check_action.triggered.connect(self.spell_check)
         toolbar.addAction(spell_check_action)
-        
+
         toolbar.addSeparator()
-        
-        # Create zoom in action
+
+        # Zoom Group
+        zoom_menu = QMenu("Zoom", self)
+        toolbar.addAction(zoom_menu.menuAction())
+
         zoom_in_action = QAction(QIcon.fromTheme("zoom-in"), "Zoom In", self)
         zoom_in_action.setShortcut("Ctrl++")
         zoom_in_action.setToolTip("Zoom in")
         zoom_in_action.triggered.connect(self.zoom_in)
-        toolbar.addAction(zoom_in_action)
+        zoom_menu.addAction(zoom_in_action)
 
-        # Create zoom out action
         zoom_out_action = QAction(QIcon.fromTheme("zoom-out"), "Zoom Out", self)
         zoom_out_action.setShortcut("Ctrl+-")
         zoom_out_action.setToolTip("Zoom out")
         zoom_out_action.triggered.connect(self.zoom_out)
-        toolbar.addAction(zoom_out_action)
+        zoom_menu.addAction(zoom_out_action)
+
+        # Add further toolbar actions or menus as needed.
+
     
     def zoom_in(self):
         self.text_editor.zoomIn()
@@ -856,47 +877,7 @@ class WordEditor(QMainWindow):
     def update_word_count(self, word_count):
         self.word_count_label.setText(f"Word Count: {word_count}")
             
-    def create_menu_bar(self):
-        menu_bar = self.menuBar()
-
-        file_menu = menu_bar.addMenu("File")
-
-        new_file_action = QAction("New", self)
-        new_file_action.triggered.connect(self.new_file)
-        file_menu.addAction(new_file_action)
-
-        open_file_action = QAction("Open", self)
-        open_file_action.triggered.connect(self.open_file)
-        file_menu.addAction(open_file_action)
-
-        save_file_action = QAction("Save", self)
-        save_file_action.triggered.connect(self.save_file)
-        file_menu.addAction(save_file_action)
-
-        save_file_as_action = QAction("Save As", self)
-        save_file_as_action.triggered.connect(self.save_document_as)
-        file_menu.addAction(save_file_as_action)
-
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-        
-        font_action = QAction("Font", self)
-        font_action.triggered.connect(self.select_font)
-        file_menu.addAction(font_action)
-        
-        settings_action = QAction("Settings", self)
-        settings_action.triggered.connect(self.open_settings_dialog)
-        file_menu.addAction(settings_action)
-
-        # Add the Find and Replace action
-        find_replace_action = QAction("Find and Replace", self)
-        find_replace_action.triggered.connect(self.open_find_replace_dialog)
-        file_menu.addAction(find_replace_action)
-        
-        api_action = QAction("API", self)
-        api_action.triggered.connect(self.open_api_dialog)
-        file_menu.addAction(api_action)
+   
 
     def load_openai_key(self):
         if os.path.exists("api_key.json"):
@@ -1054,15 +1035,36 @@ class WordEditor(QMainWindow):
             QMessageBox.information(self, "Spell Check", "No spelling errors found.")
             return
 
-        for word in misspelled:
-            suggestions = spell.candidates(word)
-            if suggestions:
-                suggested_word = list(suggestions)[0]
-                text = text.replace(word, suggested_word)
+        # Highlight misspelled words
+        format = QTextCharFormat()
+        format.setUnderlineColor(QColor("red"))
+        format.setUnderlineStyle(QTextCharFormat.SingleUnderline)
+        cursor = self.text_editor.textCursor()
+        cursor.beginEditBlock()
 
-        self.text_editor.setPlainText(text)
+        for word in misspelled:
+            local_cursor = QTextCursor(self.text_editor.document())
+            while True:
+                start_pos = text.find(word, local_cursor.position())
+                if start_pos == -1:
+                    break
+                end_pos = start_pos + len(word)
+                local_cursor.setPosition(start_pos)
+                local_cursor.setPosition(end_pos, QTextCursor.KeepAnchor)
+                local_cursor.mergeCharFormat(format)
+                suggestions = spell.candidates(word)
+                if suggestions:
+                    choice, ok = QInputDialog.getItem(self, "Spell Check", 
+                                                    f"Replace '{word}' with:", 
+                                                    list(suggestions), 0, False)
+                    if ok and choice:
+                        local_cursor.insertText(choice)
+                        text = self.text_editor.toPlainText()  # Update the text since we made changes
+
+        cursor.endEditBlock()
         QMessageBox.information(self, "Spell Check", "Spelling errors have been corrected.")
-        
+
+    
     def open_find_replace_dialog(self):
         find_replace_dialog = FindReplaceDialog(self)
         find_replace_dialog.exec_()
@@ -1192,26 +1194,39 @@ class CustomTextEdit(QPlainTextEdit):
         super().__init__(parent)
         self.textChanged.connect(self.update_word_count)
         self.threadpool = QThreadPool()
+        palette = self.palette()
+        palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor("lightblue"))
+        palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor("darkblue"))
+        self.setPalette(palette)
+
   
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
         self.threadpool = QThreadPool()
-        # Add menu options
-        analyze_action = menu.addAction("Analyze")
-        improve_action = menu.addAction("Improve")
+        
+        # Add main menu options
+        self.chatbot_widget = ChatbotAssistantWidget()
+        analyze_action = menu.addAction("Analyze (Chatbot)")
+        improve_action = menu.addAction("Improve (Chatbot)")
         assess_grammar_action = menu.addAction("Assess Grammar")
         give_ideas_action = menu.addAction("Give Ideas")
         extend_action = menu.addAction("Extend")
         shorten_action = menu.addAction("Shorten")
         spell_check_action = menu.addAction("Check Spelling")
         autocomplete_action = menu.addAction("Autocomplete")
+        
+        # Separator for next group
+        menu.addSeparator()
+
         copy_action = menu.addAction("Copy")
         paste_action = menu.addAction("Paste")
-        reference_action = menu.addAction("Reference")
         cut_action = menu.addAction("Cut")
+        reference_action = menu.addAction("Reference (Chatbot)")
 
-        
+        # Citation subcategory
+        menu.addSeparator()
+
         analyze_action.triggered.connect(self.analyze_text)
         improve_action.triggered.connect(self.improve_text)
         assess_grammar_action.triggered.connect(self.assess_grammar)
@@ -1224,8 +1239,59 @@ class CustomTextEdit(QPlainTextEdit):
         paste_action.triggered.connect(self.paste_text)
         cut_action.triggered.connect(self.cut_text)
         reference_action.triggered.connect(self.generate_reference)
+    
+        # Citation subcategory
+        menu.addSeparator()
+        citation_menu = menu.addMenu("Generate Citation")
 
-                                             
+        # Parenthetical citations submenu
+        parenthetical_citation_menu = citation_menu.addMenu("Parenthetical Citations")
+        apa_citation_action = parenthetical_citation_menu.addAction("APA Style")
+        harvard_citation_action = parenthetical_citation_menu.addAction("Harvard Style")
+        aaa_citation_action = parenthetical_citation_menu.addAction("AAA Style")
+        apsa_citation_action = parenthetical_citation_menu.addAction("APSA Style")
+        asa_citation_action = parenthetical_citation_menu.addAction("ASA Style")
+        chicago_author_date_citation_action = parenthetical_citation_menu.addAction("Chicago (Turabian) Author-Date")
+        cse_name_year_citation_action = parenthetical_citation_menu.addAction("CSE Name-Year")
+        mla_citation_action = parenthetical_citation_menu.addAction("MLA Style")
+
+        # Numerical citations submenu
+        numerical_citation_menu = citation_menu.addMenu("Numerical Citations")
+        acs_citation_action = numerical_citation_menu.addAction("ACS Style")
+        ama_citation_action = numerical_citation_menu.addAction("AMA Style")
+        cse_citation_name_action = numerical_citation_menu.addAction("CSE Citation-Name")
+        cse_citation_sequence_action = numerical_citation_menu.addAction("CSE Citation-Sequence")
+        ieee_citation_action = numerical_citation_menu.addAction("IEEE Style")
+        nlm_citation_action = numerical_citation_menu.addAction("NLM Style")
+        vancouver_citation_action = numerical_citation_menu.addAction("Vancouver Style")
+
+        # Note citations submenu
+        note_citation_menu = citation_menu.addMenu("Note Citations")
+        bluebook_citation_action = note_citation_menu.addAction("Bluebook Style")
+        chicago_notes_citation_action = note_citation_menu.addAction("Chicago (Turabian) Notes and Bibliography")
+        oscola_citation_action = note_citation_menu.addAction("OSCOLA Style")
+
+        # Connect the actions to appropriate slots
+        apa_citation_action.triggered.connect(lambda: self.generate_citation("APA"))
+        harvard_citation_action.triggered.connect(lambda: self.generate_citation("Harvard"))
+        aaa_citation_action.triggered.connect(lambda: self.generate_citation("AAA"))
+        apsa_citation_action.triggered.connect(lambda: self.generate_citation("APSA"))
+        asa_citation_action.triggered.connect(lambda: self.generate_citation("ASA"))
+        chicago_author_date_citation_action.triggered.connect(lambda: self.generate_citation("Chicago (Turabian) Author-Date"))
+        cse_name_year_citation_action.triggered.connect(lambda: self.generate_citation("CSE Name-Year"))
+        mla_citation_action.triggered.connect(lambda: self.generate_citation("MLA"))
+        acs_citation_action.triggered.connect(lambda: self.generate_citation("ACS"))
+        ama_citation_action.triggered.connect(lambda: self.generate_citation("AMA"))
+        cse_citation_name_action.triggered.connect(lambda: self.generate_citation("CSE Citation-Name"))
+        cse_citation_sequence_action.triggered.connect(lambda: self.generate_citation("CSE Citation-Sequence"))
+        ieee_citation_action.triggered.connect(lambda: self.generate_citation("IEEE"))
+        nlm_citation_action.triggered.connect(lambda: self.generate_citation("NLM"))
+        vancouver_citation_action.triggered.connect(lambda: self.generate_citation("Vancouver"))
+        bluebook_citation_action.triggered.connect(lambda: self.generate_citation("Bluebook"))
+        chicago_notes_citation_action.triggered.connect(lambda: self.generate_citation("Chicago (Turabian) Notes and Bibliography"))
+        oscola_citation_action.triggered.connect(lambda: self.generate_citation("OSCOLA"))
+
+    
         menu.exec_(event.globalPos())
         
     def wheelEvent(self, event):
@@ -1337,15 +1403,23 @@ class CustomTextEdit(QPlainTextEdit):
         response = openai_chat(prompt)  # Replace with openai_chat2 if using the second function
         return response
 
-    @pyqtSlot()
     def generate_reference(self):
         selected_text = self.textCursor().selectedText()
         if selected_text:
             query = f"Find reference for '{selected_text}'"
-            worker = self.Worker(self.internet_search, query)
-            worker.signals.finished.connect(self.insert_text)
-            self.threadpool.start(worker)
-
+            
+            # Create the worker thread and connect its finished signal to the slot that updates the UI.
+            self.worker = InternetSearchWorker(query)
+            self.worker.finished_signal.connect(self.sendchat)
+            self.worker.start()
+            
+    def generate_citation(self, style):
+        selected_text = self.textCursor().selectedText()
+        if selected_text:
+            query = f"Find reference for '{selected_text}'. Ensure that the reference is in {style} style."
+            self.worker = InternetSearchWorker(query)
+            self.worker.finished_signal.connect(self.insert_text)
+            self.worker.start()
 
     
     def insert_text(self, text):
@@ -1364,15 +1438,47 @@ class CustomTextEdit(QPlainTextEdit):
 
         
 
-    @pyqtSlot()
+class InternetSearchWorker(QThread):
+    finished_signal = pyqtSignal(str)
+
+    def __init__(self, query):
+        super().__init__()
+        self.query = query
+
+    def run(self):
+        # This is just a placeholder. Replace this with your internet_search method.
+        result = self.internet_search(self.query)
+        self.finished_signal.emit(result)
+
     def internet_search(self, query):
+        # Initialize a variable to hold the search query.
+        search_query = query
+
+        # If the query is too long, use openai_chat2 to truncate it to the maximum length of 250 characters.
+        
+        if len(query) > 300:
+            truncated_query = query[:250] + "..."
+            
+            #popup box to inform user that query has been truncated
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setWindowTitle("Query Truncated")
+            msg_box.setText("Your query was too long and has been truncated. Please try again.")
+            msg_box.setStandardButtons(QMessageBox.Ok)
+            msg_box.setDefaultButton(QMessageBox.Ok)
+            msg_box.exec()
+            
+            # Update the search_query to be the truncated version.
+            search_query = truncated_query
+
+        # Use the search_query for your searches.
         sources = [
             {
                 "endpoint": "https://en.wikipedia.org/w/api.php",
                 "params": {
                     "action": "query",
                     "list": "search",
-                    "srsearch": query,
+                    "srsearch": search_query,  # Use the search_query here.
                     "format": "json",
                 },
                 "response_handler": self._handle_wikipedia_response
@@ -1380,42 +1486,60 @@ class CustomTextEdit(QPlainTextEdit):
             {
                 "endpoint": "https://duckduckgo.com/html/",
                 "params": {
-                    "q": query,
+                    "q": search_query,  # And also here.
                 },
                 "response_handler": self._handle_duckduckgo_response
             }
         ]
-        
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
-        }
-        
+
         items = []
-        for source in sources:
-            response = requests.get(source["endpoint"], params=source["params"], headers=headers)
-            response.raise_for_status()
-            items.extend(source["response_handler"](response))
+        
+        with ThreadPoolExecutor() as executor:
+            for source in sources:
+                future_content = executor.submit(self._get_url_content, source["endpoint"], source["params"])
+                response, error_message = future_content.result()
+                if response is None:
+                    print(error_message)
+                    
+                    continue
+                items.extend(source["response_handler"](response))
+                if items and 'error' in items[-1]:
+                    # log error information
+                    print(items[-1])
+                time.sleep(1)  # Wait for 1 second
+                
+                
 
-        search_results_text = "\n".join(f"{item['title']}\n{item['url']}" for item in items)
-        truncated_search_results_text = truncate_text(search_results_text, 400)
+        # Call web_scrape_tool on each URL
+        scraped_data_results = []
+        for item in items:
+            url = item['url']
+            scraped_data = self.scrape_data(url)
+            scraped_data_results.append(scraped_data)
 
-        prompt = f"Given the web results, answer the query '{query}' and list citations using sources from the web results. Make HTML links clickable"
-        conversation_history.append({"role": "user", "content":f"{prompt}\n\nSearch results:\n{truncated_search_results_text}"})
-        # The rest of the internet_search function remains unchanged
+        # Create HTML formatted search results with clickable links
+        search_results_text = "\n".join(f'{item["title"]}<br><a href="{item["url"]}">{item["url"]}</a>' for item in items)
+
+        # Append search results to the conversation box
+        search_results_links = ""
+        for item in items:
+            title = item['title']
+            url = item['url']
+            link = f'<a href="{url}">{url}</a>'
+            search_results_links += f"{title} - {link}<br>"
+
+            
+
+        prompt = f"Using the following data extracted from search results {items}, provide a detailed answer to the query '{query}' and list citations. Make HTML links clickable"
+        conversation_history.append({"role": "user", "content":f"{prompt}\n\nSearch results:\n{search_results_text}"})
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-3.5-turbo-16k",
                 messages=conversation_history
             )
             message = response.choices[0].message.content
         except openai.error.APIConnectionError:
             error_message = "Error communicating with server on the internet. Please check your internet connection and try again."
-            # pop up of error message
-            error = QMessageBox()
-            error.setWindowTitle("Error")
-            error.setText(error_message)
-            error.setIcon(QMessageBox.Critical)
-            error.exec_()
             return error_message
         except openai.error.InvalidRequestError:
             error_message = "There was an error processing your request. Please try again later."
@@ -1425,6 +1549,43 @@ class CustomTextEdit(QPlainTextEdit):
             return error_message
         return message.strip()
 
+    def _get_url_content(self, url, params):
+        ua = UserAgent()
+        headers = {"User-Agent": ua.random}
+        try:
+            response = requests.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            return response, None
+        except requests.RequestException as e:
+            error_message = f"An error occurred while fetching {url}: {e}"
+            return None, error_message
+
+    
+    def scrape_data(self, url):
+        with ThreadPoolExecutor() as executor:
+            try:
+                future_content = executor.submit(fetch_url_content, url)
+                content = future_content.result()
+
+                if content is None:
+                    return "Failed to fetch the URL content."
+
+                future_text = executor.submit(extract_text, content)
+                text = future_text.result()
+
+                print("\033[90m\033[3m"+"Scrape completed. Length:" +str(len(text))+".Now extracting relevant info..."+"...\033[0m")
+                objective = "Extract relevant information from the plain text"
+                task = "Produce data for a search result"  # Replace with your current task
+                future_info = executor.submit(extract_relevant_info, objective, text[0:5000], task)
+                info = future_info.result()
+
+                future_links = executor.submit(extract_links, content)
+                links = future_links.result()
+
+                result = info
+                return result
+            except Exception as e:
+                print(f"An error occurred while scraping data from {url}: {e}")
 
     
     def _handle_duckduckgo_response(self, response):
@@ -1843,6 +2004,54 @@ class ImageWindow(QDialog):
         )
         if file_name:
             self.original_pixmap.save(file_name)
+
+
+def fetch_url_content(url: str):
+    try:
+        # Prepend the scheme (https://) to the URL, only if it's not already there
+        full_url = url if url.startswith("https://") else "https:" + url
+        response = requests.get(full_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        return response.content
+    except requests.exceptions.RequestException as e:
+        print(f"Error while fetching the URL {url}: {e}")
+        return None
+
+def extract_links(content: str):
+    soup = BeautifulSoup(content, "html.parser")
+    links = [link.get('href') for link in soup.findAll('a', attrs={'href': re.compile("^https?://")})]
+    return links
+
+def extract_text(content: str):
+    soup = BeautifulSoup(content, "html.parser")
+    text = soup.get_text(strip=True)
+    return text if text else "No text found in content."
+
+def extract_relevant_info(objective, large_string, task):
+    chunk_size = 5000  # Increased chunk size for larger context
+    overlap = 500
+    notes = ""
+    
+    for i in range(0, len(large_string), chunk_size - overlap):
+        chunk = large_string[i:i + chunk_size]
+        
+        messages = [
+            {"role": "system", "content": f"Objective: {objective}\nCurrent Task:{task}"},
+            {"role": "user", "content": f"Analyze the following text and extract information relevant to our objective and current task, and only information relevant to our objective and current task. If there is no relevant information do not say that there is no relevant information related to our objective. ### Then, update or start our notes provided here (keep blank if currently blank): {notes}.### Text to analyze: {chunk}.### Updated Notes:"}
+        ]
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo-16k",  # Updated model name
+            messages=messages,
+            max_tokens=2000,  # Increased max tokens for larger response
+            n=1,
+            stop="###",
+            temperature=0.7,
+        )
+
+        notes += response.choices[0].message['content'].strip()+". "
+    
+    return notes if notes.strip() else "No relevant information found."
 
               
 if __name__ == "__main__":
