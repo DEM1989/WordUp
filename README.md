@@ -1,46 +1,6 @@
 
 # WordUp: An AI-Powered Word Processor
 WordUp is an open-source, PyQt5-based word processor application with AI assistant features powered by OpenAI's GPT models. It's a cross-platform application that can be run on Windows, Mac, and Linux.
-```markdown
-<p align="center">
-  <a href="https://github.com/your-username/WordUp"> <img src="link_to_your_logo" alt="WordUp Logo" width="200"></a>
-</p>
-
-<p align="center">
-  WordUp reimagines writing with the power of AI. This cross-platform word processor seamlessly integrates OpenAI's GPT models to enhance your creativity and productivity. 
-</p>
-
-<p align="center">
-   <a href="https://github.com/your-username/WordUp/releases">
-   <img src="https://img.shields.io/badge/Download-Latest-brightgreen?style=for-the-badge" alt="Download WordUp">
-   </a>
-   <a href="https://github.com/your-username/WordUp/wiki">
-   <img src="https://img.shields.io/badge/Documentation-Wiki-blue?style=for-the-badge" alt="Documentation">
-   </a>
-</p>
-
-
-<p align="center">
-   <a href="https://github.com/your-username/WordUp/wiki/Installation">
-   <img src="https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="windows">
-   </a>
-   <a href="https://github.com/your-username/WordUp/wiki/Installation">
-   <img src="https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=apple&logoColor=white" alt="macos">
-   </a>
-    <a href="https://github.com/your-username/WordUp/wiki/Installation">
-   <img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="linux">
-   </a>
-</p> 
-
-<p align="center">
-  <a href="https://www.python.org/">
-  <img src="https://img.shields.io/badge/Made%20with-Python-1f425f.svg" alt="Made_with_python">
-  </a>
-  <a href="https://pypi.org/project/WordUp/">
-    <img src="https://img.shields.io/pypi/v/WordUp?color=blue&label=PyPI%20Package&style=for-the-badge" alt="PyPI version">
-  </a>
-  <img src="https://static.pepy.tech/personalized-badge/wordup?period=total&units=international_system&left_color=grey&right_color=blue&left_text=Downloads" alt="Total Downloads">
-</p>
 
 
 ## Unleash Your Writing Potential
