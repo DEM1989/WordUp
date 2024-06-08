@@ -1,6 +1,6 @@
 
 # WordUp: An AI-Powered Word Processor
-WordUp is an open-source, PyQt5-based word processor application with AI assistant features powered by OpenAI's GPT models. It's a cross-platform application that can be run on Windows, Mac, and Linux.
+WordUp is an open-source, PyQt5-based word processor application with AI assistant features powered by OpenAI's GPT models.
 
 
 ## Unleash Your Writing Potential
